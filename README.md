@@ -2,6 +2,7 @@
 
 This github repository contains the necessary docker script to set the environment for seven general-purpose polyhedral compilers and build those
 compilers in an Unix/Linux environment. Those seven polyhedral compilers are as follows: Pluto, PoCC, Polly, Graphite, PolyOpt, PPCG, and Polygeist.
+
 It also contains the PolyBench/C benchmarks to test them and measure the execution time of the resulting codes.
 Currently, we only support the execution for CPU architectures.
 
