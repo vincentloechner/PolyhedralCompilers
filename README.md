@@ -21,17 +21,21 @@ The polyhedral compiler's source files and their respective build `binaries` are
 ### How to test Polyhedral Compilers
 We rely on PolyBench/C - a set of 30 numerical benchmarks that has polyhedral nature of nested loops. We have
 two scripts `execute_polyhedral.sh` and `execute_polyhedral_syn.sh` to test the parallel and non-parallel execution
-of polyhedral compilers. Few examples:
+of polyhedral compilers. Some examples:
 
+To execute all 30 benchmarks against `gcc`, `clang`, `icc`, `rose`, and seven polyhedral compilers in parallel, run:
 ```
 cd polybench
 ./execute_polyhedral.sh
 ```
-To execute all 30 benchmarks against `gcc`, `clang`, `icc`, `rose`, and seven polyhedral compilers. 
 
 
+To execute the 2mm benchmark against `gcc`, `clang`, `icc`, `rose`, and seven polyhedral compilers in sequential, run:
 ```
 cd polybench
-./execute_polyhedral.sh -bench 2mm
+./execute_polyhedral_syn.sh -bench 2mm
 ```
-To execute 2mm benchmark against `gcc`, `clang`, `icc`, `rose`, and seven polyhedral compilers. 
+
+More optins are available, check the first lines of the script for more information.
+
+The results can be found in the `/results/output_data`  repository in the docker machine, or in the `docker/output_data` repository of the host.
