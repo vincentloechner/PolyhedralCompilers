@@ -1,0 +1,371 @@
+FROM ubuntu:20.04
+
+ARG name="polyhedral-survey"
+ARG maintainer="thangamani@unistra.fr"
+ARG description="C/C++, and Python dependencies of POLYHEDRAL"
+
+LABEL name=${name} \
+      maintainer=${maintainer} \
+      description=${description}
+
+ENV POLYHEDRAL_DIR="/usr/local/lib/polyhedral"
+
+# installs for Polygeist
+ARG DEBIAN_FRONTEND=noninteractive
+ARG GID
+ARG UID
+RUN echo "Group ID: $GID"
+RUN echo "User ID: $UID"
+
+# Essential packages
+RUN apt-get update
+RUN apt-get install apt-utils
+RUN apt-get -y install tzdata --assume-yes
+
+RUN apt-get install build-essential libtool autoconf pkg-config flex bison libgmp-dev clang-9 libclang-9-dev texinfo cmake vim ninja-build git texlive-full --assume-yes
+
+# Change default compilers to make Pluto happy.
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-9 100
+RUN update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-9 100
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
+
+# Install packages for polyhedral
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y --no-install-recommends \
+    linux-tools-common \
+    linux-tools-generic \
+    linux-base \
+    texlive \
+    texlive-full \
+    texlive-latex-base \
+    bc \
+    ca-certificates \
+    curl \
+    dpkg-dev \
+    file \
+    g++ \
+    gengetopt \
+    gfortran \
+    git \
+    libfftw3-dev \
+    libgomp1 \
+    make \
+    pkg-config \
+    python3 \
+    python3-distutils \
+    ssh \
+    valgrind \
+    zlib1g-dev \
+    libjpeg-dev \
+    cmake \
+ && ln -sf /usr/bin/python3 /usr/bin/python \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Python3 packages
+RUN export DEBIAN_FRONTEND="noninteractive" && \
+    apt update && apt install -y --no-install-recommends \
+    libhdf5-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    python3-tk \
+    python3-wheel \
+    python-is-python3 \
+ && pip3 install --upgrade pip && pip install --no-cache-dir \
+    matplotlib \
+    numpy \
+    pandas \
+    scipy \
+    tables \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ARG CMAKE_FILE="https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2-linux-x86_64.tar.gz"
+ARG LLVM_REPO_URL="https://github.com/llvm/llvm-project.git"
+
+LABEL name=${name} \
+      maintainer=${maintainer} \
+      description=${description}
+
+ENV POLYHEDRAL_DIR="/usr/local/lib/polyhedral"
+
+# Install packages for polyhedral
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y --no-install-recommends \
+    ninja-build \
+    ccache \
+    binutils-gold \
+    wget \
+    vim \
+    gdb \
+ && ln -sf /usr/bin/python3 /usr/bin/python \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Python3 packages pybind, PyYAML, dataclasses
+RUN export DEBIAN_FRONTEND="noninteractive" && \
+    pip install --no-cache-dir \
+    pybind11>=2.8.0 \
+    PyYAML \
+    dataclasses \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR ${POLYHEDRAL_DIR}
+
+# Download and install updated CMake
+RUN wget -qO- ${CMAKE_FILE} | tar xz --one-top-level=${POLYHEDRAL_DIR}/cmake --strip-components 1
+ENV PATH="${POLYHEDRAL_DIR}/cmake/bin:${PATH}"
+
+# ----------- LLVM Build ---------------
+# Download LLVM
+RUN git clone ${LLVM_REPO_URL}
+
+WORKDIR ${POLYHEDRAL_DIR}/llvm-project
+ARG LLVM_TAG="llvmorg-15.0.2"
+RUN git checkout ${LLVM_TAG}
+
+# Build and install LLVM; clang-15; polly
+# Enables only CPU
+RUN mkdir build
+WORKDIR ${POLYHEDRAL_DIR}/llvm-project/build
+RUN cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DMLIR_ENABLE_BINDINGS_PYTHON=True -DBUILD_SHARED_LIBS=True -DLLVM_CCACHE_BUILD=True -DLLVM_USE_LINKER=gold
+RUN ninja all
+#RUN cmake -DCMAKE_INSTALL_PREFIX=/usr/local -P cmake_install.cmake
+
+
+# update path to find llvm-lit and FileCheck
+ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
+
+# ----------- Pluto Build ---------------
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y autoconf
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y automake
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y autotools-dev
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libgmp-dev
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libtool
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y flex
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y bison
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y pkg-config
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libgmp-dev
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libyaml-dev
+ 
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+
+RUN wget -qO- ${PLUTO_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pluto --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/pluto
+
+RUN ./configure
+RUN make -j8
+
+#ppcg installation
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PPCG_REPO_URL="git://repo.or.cz/ppcg.git"
+
+RUN git clone ${PPCG_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/ppcg
+RUN ./get_submodules.sh
+RUN ./autogen.sh
+RUN ./configure
+RUN make -j32
+
+#PoCC installtion
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y gcc
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y g++-multilib
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y perl
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y doxygen
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y texinfo
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y texlive-latex-extra
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y wget
+ 
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y rsync
+
+WORKDIR ${POLYHEDRAL_DIR}
+ARG POCC_REPO_URL="https://sourceforge.net/projects/pocc/files/1.6/release/pocc-1.6.0-alpha-selfcontained.tar.gz"
+ 
+RUN wget -qO- ${POCC_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pocc --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/pocc
+
+RUN ./install.sh
+
+#Graphite Installation
+WORKDIR ${POLYHEDRAL_DIR}
+ARG ISL_REPO_URL="https://github.com/Meinersbur/isl.git"
+
+RUN git clone ${ISL_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/isl
+RUN mkdir ${POLYHEDRAL_DIR}/isl/isl-install
+
+RUN ./autogen.sh
+RUN ./configure --prefix=${POLYHEDRAL_DIR}/isl/isl-install/
+RUN make -j32
+RUN make install
+
+WORKDIR ${POLYHEDRAL_DIR}
+ARG GCC_REPO_URL="https://gcc.gnu.org/git/gcc.git"
+RUN git clone ${GCC_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/gcc
+RUN git checkout 0bdc158d3ee26c61b6b277238944ca5f0409e151
+RUN mkdir ${POLYHEDRAL_DIR}/gcc/gcc-install
+RUN ./contrib/download_prerequisites
+
+RUN ./configure  --host=x86_64-pc-linux-gnu --prefix=${POLYHEDRAL_DIR}/gcc/gcc-install/ --disable-multilib
+RUN make -j32
+RUN make install
+
+#Polygeist Installation
+# Install mlir-clang
+WORKDIR ${POLYHEDRAL_DIR}
+RUN git clone -b main-042621 --single-branch https://github.com/wsmoses/Polygeist mlir-clang
+RUN cd mlir-clang \
+    && mkdir build \
+    && cd build \
+    && cmake -G Ninja ../llvm \
+         -DLLVM_ENABLE_PROJECTS="mlir;polly;clang;openmp" \
+         -DLLVM_BUILD_EXAMPLES=ON \
+         -DLLVM_TARGETS_TO_BUILD="host" \
+         -DCMAKE_BUILD_TYPE=Release \
+         -DLLVM_ENABLE_ASSERTIONS=ON   
+RUN cd mlir-clang/build && ninja all
+
+# Install Polymer
+WORKDIR ${POLYHEDRAL_DIR}
+RUN git clone --recursive https://github.com/kumasento/polymer 
+RUN cd polymer && git checkout pact && git submodule update --recursive --init
+RUN cd polymer \
+    && mkdir llvm/build \
+    && cd llvm/build \
+    && cmake ../llvm \
+      -DLLVM_ENABLE_PROJECTS="llvm;clang;mlir" \
+      -DLLVM_TARGETS_TO_BUILD="host" \
+      -DLLVM_ENABLE_ASSERTIONS=ON \
+      -DCMAKE_BUILD_TYPE=DEBUG \
+      -DLLVM_INSTALL_UTILS=ON \
+      -DCMAKE_C_COMPILER=clang \
+      -DCMAKE_CXX_COMPILER=clang++ \
+      -G Ninja 
+RUN cd polymer/llvm/build && ninja all
+RUN cd polymer && rm -rf build && mkdir -p build && cd build \
+	&& cmake .. \
+		  -DCMAKE_BUILD_TYPE=DEBUG \
+		  -DMLIR_DIR=$PWD/../llvm/build/lib/cmake/mlir \
+		  -DLLVM_DIR=$PWD/../llvm/build/lib/cmake/llvm \
+		  -DLLVM_ENABLE_ASSERTIONS=ON \
+		  -DCMAKE_C_COMPILER=clang-9 \
+		  -DCMAKE_CXX_COMPILER=clang++-9 \
+		  -DLLVM_EXTERNAL_LIT=${PWD}/../llvm/build/bin/llvm-lit \
+		  -G Ninja
+RUN cd polymer/build && ninja 
+
+# ----------- Rose compiler Build ---------------
+#boost installation
+
+ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
+ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libboost-all-dev
+ 
+WORKDIR ${POLYHEDRAL_DIR}
+ARG BOOST_REPO_URL="https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz"
+ 
+RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/boost
+
+RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
+RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
+RUN ./b2 install
+
+#rose installation
+WORKDIR ${POLYHEDRAL_DIR}
+ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
+
+RUN git clone ${ROSE_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/rose
+RUN git checkout v0.11.100.0
+RUN sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C
+
+RUN ./build
+RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-install
+RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-build
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/lib/"
+
+
+WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
+RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/
+RUN make -j32
+RUN make install
+
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
+ENV PATH="${PATH}:${POLYHEDRAL_DIR}/rose/rose-install/bin/"
+
+ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install/"
+ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
+
+WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
+RUN ./install.sh
+RUN make install
+
+#Polybench
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PS_REPO_URL="https://sourceforge.net/projects/polybench/files/polybench-c-4.2.tar.gz"
+ 
+RUN wget -qO- ${PS_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/polybench --strip-components 1
+
+# Add scripts and patch
+WORKDIR ${POLYHEDRAL_DIR}
+ADD l_BaseKit_p_2021.4.0.3422.sh ${POLYHEDRAL_DIR}
+ADD l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
+
+WORKDIR ${POLYHEDRAL_DIR}
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libnotify-dev
+
+RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept
+RUN bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
+
+WORKDIR ${POLYHEDRAL_DIR}
+ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}
+ADD polybench.c ${POLYHEDRAL_DIR}/polybench/utilities
+RUN mkdir ${POLYHEDRAL_DIR}/polybench/output_data
+RUN cp ${POLYHEDRAL_DIR}/execute_polyhedral.sh ${POLYHEDRAL_DIR}/execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench
+
+RUN mkdir /results
+
+WORKDIR ${POLYHEDRAL_DIR}
+
