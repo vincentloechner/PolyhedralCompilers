@@ -36,6 +36,6 @@ cd polybench
 ./execute_polyhedral_syn.sh -bench 2mm
 ```
 
-More optins are available, check the first lines of the script for more information.
+More options are available, check the first lines of the script for more information.
 
 The results can be found in the `/results/output_data`  repository in the docker machine, or in the `docker/output_data` repository of the host.
