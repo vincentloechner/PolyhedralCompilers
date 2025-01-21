@@ -7,8 +7,12 @@ It also contains the PolyBench/C benchmarks to test them and measure the executi
 Currently, we only support the execution on CPU architectures.
 
 ### Steps to Build Docker Environment
-This Docker installation will occupy more than `50GB` of disk space. Clone the above git repository. The folder `docker` contains all the necessary files to build the docker environment. 
-The commands to install it and run ir are as follows:
+This docker installation will occupy more than `50GB` of disk space, and take *some* time to build
+(depending on the performance of your computer).
+The complete sequential benchmarks will run in less than a day, the parallel ones are obviously faster.
+
+The `docker` folder contains the Dockerfile and all the scripts to build the docker environment.
+The complete list of commands to install it and run it are as follows:
 ```
 git clone https://github.com/vincentloechner/PolyhedralCompilers.git
 cd PolyhedralCompilers/docker
