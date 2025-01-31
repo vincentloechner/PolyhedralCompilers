@@ -9,6 +9,7 @@ LABEL name=${name} \
       description=${description}
 
 ENV POLYHEDRAL_DIR="/usr/local/lib/polyhedral"
+ENV LD_LIBRARY_PATH=""
 
 # installs for Polygeist
 ARG DEBIAN_FRONTEND=noninteractive
@@ -332,7 +333,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/li
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
 RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/
-RUN make -j32
+RUN make -j4
 RUN make install
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
