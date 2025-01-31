@@ -129,7 +129,8 @@ RUN git checkout ${LLVM_TAG}
 RUN mkdir build
 WORKDIR ${POLYHEDRAL_DIR}/llvm-project/build
 RUN cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DMLIR_ENABLE_BINDINGS_PYTHON=True -DBUILD_SHARED_LIBS=True -DLLVM_CCACHE_BUILD=True -DLLVM_USE_LINKER=gold
-RUN ninja all
+# -j 2 or even 1 if you're short in memory for compiling llvm...
+RUN ninja -j 2 all
 #RUN cmake -DCMAKE_INSTALL_PREFIX=/usr/local -P cmake_install.cmake
 
 
@@ -278,7 +279,9 @@ RUN cd polymer \
       -DCMAKE_C_COMPILER=clang \
       -DCMAKE_CXX_COMPILER=clang++ \
       -G Ninja 
-RUN cd polymer/llvm/build && ninja all
+
+# -j 2 or even 1 if you're short in memory for compiling llvm...
+RUN cd polymer/llvm/build && ninja -j 2 all
 RUN cd polymer && rm -rf build && mkdir -p build && cd build \
 	&& cmake .. \
 		  -DCMAKE_BUILD_TYPE=DEBUG \
@@ -301,8 +304,9 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
  && apt update && apt install -y libboost-all-dev
  
 WORKDIR ${POLYHEDRAL_DIR}
-ARG BOOST_REPO_URL="https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz"
- 
+# ARG BOOST_REPO_URL="https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz"
+ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
+
 RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
 
 WORKDIR ${POLYHEDRAL_DIR}/boost
