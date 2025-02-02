@@ -19,9 +19,7 @@ RUN echo "Group ID: $GID"
 RUN echo "User ID: $UID"
 
 # Essential packages
-RUN apt-get update
-RUN apt-get install apt-utils
-RUN apt-get -y install tzdata --assume-yes
+RUN apt-get update && apt-get install apt-utils && apt-get -y install tzdata --assume-yes
 
 RUN apt-get install build-essential libtool autoconf pkg-config flex bison libgmp-dev clang-9 libclang-9-dev texinfo cmake vim ninja-build git texlive-full --assume-yes
 
@@ -138,37 +136,10 @@ RUN ninja -j 2 all
 # update path to find llvm-lit and FileCheck
 ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
 
-# ----------- Pluto Build ---------------
+# ----------- PLUTO ---------------
 RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y autoconf
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y automake
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y autotools-dev
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y libgmp-dev
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y libtool
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y flex
+   && apt update && apt install -y autoconf automake autotools-dev libgmp-dev libtool flex bison pkg-config libgmp-dev libyaml-dev
 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y bison
-
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y pkg-config
-
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y libgmp-dev
-
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y libyaml-dev
- 
 WORKDIR ${POLYHEDRAL_DIR}
 ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
 
@@ -179,7 +150,8 @@ WORKDIR ${POLYHEDRAL_DIR}/pluto
 RUN ./configure
 RUN make -j8
 
-#ppcg installation
+# ----------- PPCG ---------------
+# ppcg installation
 WORKDIR ${POLYHEDRAL_DIR}
 ARG PPCG_REPO_URL="git://repo.or.cz/ppcg.git"
 
@@ -188,32 +160,12 @@ WORKDIR ${POLYHEDRAL_DIR}/ppcg
 RUN ./get_submodules.sh
 RUN ./autogen.sh
 RUN ./configure
-RUN make -j32
+RUN make -j8
 
-#PoCC installtion
+# ----------- POCC ---------------
+# PoCC installation
 RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y gcc
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y g++-multilib
-
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y perl
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y doxygen
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y texinfo
-
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y texlive-latex-extra
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y wget
- 
-RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y rsync
+ && apt update && apt install -y gcc g++-multilib perl doxygen texinfo texlive-latex-extra wget rsync
 
 WORKDIR ${POLYHEDRAL_DIR}
 ARG POCC_REPO_URL="https://sourceforge.net/projects/pocc/files/1.6/release/pocc-1.6.0-alpha-selfcontained.tar.gz"
@@ -224,7 +176,8 @@ WORKDIR ${POLYHEDRAL_DIR}/pocc
 
 RUN ./install.sh
 
-#Graphite Installation
+# ----------- GRAPHITE ---------------
+# Graphite Installation
 WORKDIR ${POLYHEDRAL_DIR}
 ARG ISL_REPO_URL="https://github.com/Meinersbur/isl.git"
 
@@ -234,7 +187,7 @@ RUN mkdir ${POLYHEDRAL_DIR}/isl/isl-install
 
 RUN ./autogen.sh
 RUN ./configure --prefix=${POLYHEDRAL_DIR}/isl/isl-install/
-RUN make -j32
+RUN make -j8
 RUN make install
 
 WORKDIR ${POLYHEDRAL_DIR}
@@ -246,10 +199,11 @@ RUN mkdir ${POLYHEDRAL_DIR}/gcc/gcc-install
 RUN ./contrib/download_prerequisites
 
 RUN ./configure  --host=x86_64-pc-linux-gnu --prefix=${POLYHEDRAL_DIR}/gcc/gcc-install/ --disable-multilib
-RUN make -j32
+RUN make -j8
 RUN make install
 
-#Polygeist Installation
+# ----------- POLYGEIST ---------------
+# Polygeist Installation
 # Install mlir-clang
 WORKDIR ${POLYHEDRAL_DIR}
 RUN git clone -b main-042621 --single-branch https://github.com/wsmoses/Polygeist mlir-clang
@@ -294,9 +248,8 @@ RUN cd polymer && rm -rf build && mkdir -p build && cd build \
 		  -DLLVM_EXTERNAL_LIT=${PWD}/../llvm/build/bin/llvm-lit \
 		  -G Ninja
 RUN cd polymer/build && ninja 
-
-# ----------- Rose compiler Build ---------------
-#boost installation
+# ----------- ROSE ---------------
+# boost installation
 
 ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
 ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
@@ -305,7 +258,6 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
  && apt update && apt install -y libboost-all-dev
  
 WORKDIR ${POLYHEDRAL_DIR}
-# ARG BOOST_REPO_URL="https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz"
 ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
 
 RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
@@ -316,7 +268,7 @@ RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
 RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
 RUN ./b2 install
 
-#rose installation
+# rose installation
 WORKDIR ${POLYHEDRAL_DIR}
 ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
 
@@ -346,7 +298,8 @@ WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
 RUN ./install.sh
 RUN make install
 
-#Polybench
+# ----------- POLYBENCH ---------------
+# Polybench
 WORKDIR ${POLYHEDRAL_DIR}
 ARG PS_REPO_URL="https://sourceforge.net/projects/polybench/files/polybench-c-4.2.tar.gz"
  
@@ -361,7 +314,8 @@ WORKDIR ${POLYHEDRAL_DIR}
 RUN export DEBIAN_FRONTEND="noninteractive" \
  && apt update && apt install -y libnotify-dev
 
-RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept
+# ----------- FINAL POLISHING ---------------
+   RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept
 RUN bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
 
 WORKDIR ${POLYHEDRAL_DIR}
