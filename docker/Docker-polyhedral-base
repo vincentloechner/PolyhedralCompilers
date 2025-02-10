@@ -106,7 +106,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 # Download and install updated CMake, because many packages need a recent version not available in ubuntu20
 WORKDIR ${POLYHEDRAL_DIR}
 RUN PROC_ARCH=$(uname -m) \
-    && CMAKE_FILE="https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2-linux-${PROC_ARCH}.tar.gz"
+    && CMAKE_FILE="https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2-linux-${PROC_ARCH}.tar.gz" \
     && wget -qO- ${CMAKE_FILE} | tar xz --one-top-level=${POLYHEDRAL_DIR}/cmake --strip-components 1
 ENV PATH="${POLYHEDRAL_DIR}/cmake/bin:${PATH}"
 

@@ -1,4 +1,4 @@
-# after building polyhedral base, install all polyhedral compilers on top of this image
+# after building polyhedral base, install all polyhedral compilers on top of it
 # allocate enough memory in your docker!
 # -> on MacOS, click on the Docker Desktop bottom line 'RAM' to set the memory limit to 16GB at least
 FROM polyhedral-base
@@ -36,9 +36,6 @@ RUN git checkout ${LLVM_TAG} \
 ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
 
 # ----------- PLUTO ---------------
-# RUN export DEBIAN_FRONTEND="noninteractive" \
-#  && apt update && apt install -y autoconf automake autotools-dev libgmp-dev libtool flex bison pkg-config libgmp-dev libyaml-dev
-
 WORKDIR ${POLYHEDRAL_DIR}
 ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
 RUN wget -qO- ${PLUTO_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pluto --strip-components 1
@@ -59,16 +56,13 @@ RUN ./get_submodules.sh \
     && make -j 8
  
 # ----------- POCC ---------------
-# RUN export DEBIAN_FRONTEND="noninteractive" \
-#  && apt update && apt install -y gcc perl doxygen texinfo texlive-latex-extra wget rsync
-
 WORKDIR ${POLYHEDRAL_DIR}
 ARG POCC_REPO_URL="https://sourceforge.net/projects/pocc/files/1.6/release/pocc-1.6.0-alpha-selfcontained.tar.gz"
  
 RUN wget -qO- ${POCC_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pocc --strip-components 1
 
 WORKDIR ${POLYHEDRAL_DIR}/pocc
-# new config.guess and autoreconf needed for polylib to compile on arm64 chips (Apple)
+# new config.guess and autoreconf needed for polylib to compile on aarch64 (Apple)
 RUN cd archives \
     && tar xzf polylib-5.22.5.tar.gz \
     && cd polylib-5.22.5 \
@@ -82,7 +76,6 @@ RUN ./install.sh
 
 # ----------- GRAPHITE ---------------
 # isl -> not necessary, it is downloaded by gcc/contrib/download_prerequisites
-# should be: https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.24.tar.bz2
 # WORKDIR ${POLYHEDRAL_DIR}
 # ARG ISL_REPO_URL="https://github.com/Meinersbur/isl.git"
 # RUN git clone ${ISL_REPO_URL}
@@ -98,6 +91,7 @@ RUN ./install.sh
 WORKDIR ${POLYHEDRAL_DIR}
 ARG GCC_REPO_URL="https://gcc.gnu.org/git/gcc.git"
 RUN git clone ${GCC_REPO_URL}
+
 WORKDIR ${POLYHEDRAL_DIR}/gcc
 RUN git checkout releases/gcc-14.2.0 \
     && mkdir ${POLYHEDRAL_DIR}/gcc/gcc-install \
@@ -182,34 +176,30 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
  
 WORKDIR ${POLYHEDRAL_DIR}
 ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
-
 RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
 
 WORKDIR ${POLYHEDRAL_DIR}/boost
-
 RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
 RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
 RUN ./b2 install
-
-# rose installation
-WORKDIR ${POLYHEDRAL_DIR}
-ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
-
-RUN git clone ${ROSE_REPO_URL}
-WORKDIR ${POLYHEDRAL_DIR}/rose
-RUN git checkout v0.11.100.0
-RUN sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C
-
-RUN ./build
-RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-install
-RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-build
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/lib/"
 
+# rose build
+WORKDIR ${POLYHEDRAL_DIR}
+ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
+RUN git clone ${ROSE_REPO_URL}
+
+WORKDIR ${POLYHEDRAL_DIR}/rose
+RUN git checkout v0.11.100.0 \
+    && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
+    && ./build \
+    && mkdir ${POLYHEDRAL_DIR}/rose/rose-install \
+    && mkdir ${POLYHEDRAL_DIR}/rose/rose-build
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
-RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/
-RUN make -j4
-RUN make install
+RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/ \
+    && make -j4 \
+    && make install
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
 ENV PATH="${PATH}:${POLYHEDRAL_DIR}/rose/rose-install/bin/"
@@ -218,8 +208,8 @@ ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install/"
 ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
-RUN ./install.sh
-RUN make install
+RUN ./install.sh \
+    && make install
 
 # ----------- POLYBENCH ---------------
 # Polybench
@@ -231,23 +221,16 @@ RUN wget -qO- ${PS_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/polybenc
 # ----------- FINAL POLISHING ---------------
 # Add scripts and patch
 WORKDIR ${POLYHEDRAL_DIR}
-ADD l_BaseKit_p_2021.4.0.3422.sh ${POLYHEDRAL_DIR}
-ADD l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
-
-WORKDIR ${POLYHEDRAL_DIR}
 RUN export DEBIAN_FRONTEND="noninteractive" \
- && apt update && apt install -y libnotify-dev
+    && apt update && apt install -y libnotify-dev
 
-RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept
-RUN bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
+ADD l_BaseKit_p_2021.4.0.3422.sh l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
+RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept \
+    && bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
 
-WORKDIR ${POLYHEDRAL_DIR}
-ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}
+ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench
 ADD polybench.c ${POLYHEDRAL_DIR}/polybench/utilities
-RUN mkdir ${POLYHEDRAL_DIR}/polybench/output_data
-RUN cp ${POLYHEDRAL_DIR}/execute_polyhedral.sh ${POLYHEDRAL_DIR}/execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench
-
-RUN mkdir /results
+RUN mkdir /results && ln -s /results ${POLYHEDRAL_DIR}/polybench/output_data
 
 WORKDIR ${POLYHEDRAL_DIR}
 
