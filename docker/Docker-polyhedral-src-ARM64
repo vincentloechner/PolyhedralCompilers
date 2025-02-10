@@ -1,0 +1,253 @@
+# after building polyhedral base, install all polyhedral compilers on top of this image
+# allocate enough memory in your docker!
+# -> on MacOS, click on the Docker Desktop bottom line 'RAM' to set the memory limit to 16GB at least
+FROM polyhedral-base
+
+ARG name="polyhedral-survey"
+ARG maintainer="loechner@unistra.fr"
+ARG description="polyhedral compilers and polybench"
+
+LABEL name=${name} \
+      maintainer=${maintainer} \
+      description=${description}
+
+ENV POLYHEDRAL_DIR="/usr/local/lib/polyhedral"
+ENV LD_LIBRARY_PATH=""
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# ----------- LLVM Build ---------------
+# Download LLVM
+WORKDIR ${POLYHEDRAL_DIR}
+ARG LLVM_REPO_URL="https://github.com/llvm/llvm-project.git"
+RUN git clone ${LLVM_REPO_URL}
+
+# Build LLVM; clang-19; polly
+# Enables only CPU/host arch
+WORKDIR ${POLYHEDRAL_DIR}/llvm-project
+# was: ARG LLVM_TAG="llvmorg-15.0.2"
+ARG LLVM_TAG="llvmorg-19.1.7"
+RUN git checkout ${LLVM_TAG} \
+    && mkdir -p build && cd build \
+    && cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly" -DLLVM_TARGETS_TO_BUILD="host" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=True -DLLVM_CCACHE_BUILD=True -DLLVM_USE_LINKER=lld \
+    && ninja -j 4 all
+
+# # update path to find llvm-lit and FileCheck
+ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
+
+# ----------- PLUTO ---------------
+# RUN export DEBIAN_FRONTEND="noninteractive" \
+#  && apt update && apt install -y autoconf automake autotools-dev libgmp-dev libtool flex bison pkg-config libgmp-dev libyaml-dev
+
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+RUN wget -qO- ${PLUTO_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pluto --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/pluto
+RUN CC=clang-9 CXX=clang++-9 ./configure \
+    && make -j 8
+
+# ----------- PPCG ---------------
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PPCG_REPO_URL="git://repo.or.cz/ppcg.git"
+
+RUN git clone ${PPCG_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/ppcg
+RUN ./get_submodules.sh \
+    && ./autogen.sh \
+    && ./configure \
+    && make -j 8
+ 
+# ----------- POCC ---------------
+# RUN export DEBIAN_FRONTEND="noninteractive" \
+#  && apt update && apt install -y gcc perl doxygen texinfo texlive-latex-extra wget rsync
+
+WORKDIR ${POLYHEDRAL_DIR}
+ARG POCC_REPO_URL="https://sourceforge.net/projects/pocc/files/1.6/release/pocc-1.6.0-alpha-selfcontained.tar.gz"
+ 
+RUN wget -qO- ${POCC_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pocc --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/pocc
+# new config.guess and autoreconf needed for polylib to compile on arm64 chips (Apple)
+RUN cd archives \
+    && tar xzf polylib-5.22.5.tar.gz \
+    && cd polylib-5.22.5 \
+    && rm config.guess \
+    && autoreconf -i \
+    && cd .. \
+    && tar czf polylib-5.22.5.tar.gz polylib-5.22.5 \
+    && cd ..
+# POCC build
+RUN ./install.sh
+
+# ----------- GRAPHITE ---------------
+# isl -> not necessary, it is downloaded by gcc/contrib/download_prerequisites
+# should be: https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.24.tar.bz2
+# WORKDIR ${POLYHEDRAL_DIR}
+# ARG ISL_REPO_URL="https://github.com/Meinersbur/isl.git"
+# RUN git clone ${ISL_REPO_URL}
+# WORKDIR ${POLYHEDRAL_DIR}/isl
+# RUN git checkout isl-0.24 \
+#     && mkdir isl-install \
+#     && ./autogen.sh \
+#     && ./configure --prefix=${POLYHEDRAL_DIR}/isl/isl-install/ \
+#     && make -j8 \
+#     && make install
+
+# gcc/graphite
+WORKDIR ${POLYHEDRAL_DIR}
+ARG GCC_REPO_URL="https://gcc.gnu.org/git/gcc.git"
+RUN git clone ${GCC_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/gcc
+RUN git checkout releases/gcc-14.2.0 \
+    && mkdir ${POLYHEDRAL_DIR}/gcc/gcc-install \
+    && ./contrib/download_prerequisites \
+    && mkdir build && cd build \
+    && ../configure --prefix=${POLYHEDRAL_DIR}/gcc/gcc-install/ --host=aarch64-linux-gnu #--disable-multilib \
+    && make -j8 \
+    && make install
+
+# need gawk?
+
+### git checkout 0bdc158d3ee26c61b6b277238944ca5f0409e151 \
+# && ../configure  --host=arm64-linux-gnu --prefix=${POLYHEDRAL_DIR}/gcc/gcc-install/ --disable-multilib \
+# # TODO: 10.39 configure: error: /bin/bash ../.././isl/./config.sub arm64-linux-gnu failed
+# # RUN make -j8
+# # RUN make install
+
+# ----------- POLYGEIST ---------------
+# Polygeist Installation
+WORKDIR ${POLYHEDRAL_DIR}
+# TODO: was mlir-clang/
+ARG POLYGEIST_REPO="https://github.com/llvm/Polygeist"
+RUN git clone --recursive ${POLYGEIST_REPO}
+RUN cd Polygeist \
+    && git checkout 77c04bb2a7a2406ca9480bcc9e729b07d2c8d077
+
+### Two steps compilation:
+# 1. LLVM
+RUN cd Polygeist \
+    && mkdir llvm-project/build \
+    && cd llvm-project/build \
+    && cmake -G Ninja ../llvm \
+      -DLLVM_ENABLE_PROJECTS="mlir;clang;polly;openmp" \
+      -DLLVM_TARGETS_TO_BUILD="host" \
+      -DLLVM_ENABLE_ASSERTIONS=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DLLVM_USE_LINKER=lld \
+    && ninja -j 4
+
+# 2. Polygeist with Polymer & Pluto
+# for polymer not to download and rebuild *another* version of LLVM
+# make fake empty llvm:
+RUN mkdir -p Polygeist/build && cd Polygeist/build \
+    && mkdir -p llvm/llvm-project \
+    && mkdir -p llvm/build \
+    && mkdir -p llvm/install \
+    && touch llvm/install/.DONE
+# build polymer embedded pluto with (system) clang-9:
+ARG PLUTO_DIR="${POLYHEDRAL_DIR}/Polygeist/build/pluto"
+RUN mkdir -p ${PLUTO_DIR} && cd ${PLUTO_DIR} \
+    && git clone https://github.com/kumasento/pluto \
+    && cd pluto \
+    && git checkout 5603283fb3e74fb33c380bb52874972b440d51a2 \
+    && git submodule update --init --recursive \
+    && ./autogen.sh \
+    && ./configure CC=clang-9 CXX=clang++-9 --prefix="${PLUTO_DIR}/install" \
+    && make -j 8 install \
+    && touch ${PLUTO_DIR}/.DONE
+
+# build polygeist, with embedded polymer (& pluto)
+RUN mkdir -p Polygeist/build && cd Polygeist/build \
+    && cmake -G Ninja .. \
+      -DMLIR_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/mlir \
+      -DCLANG_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/clang \
+      -DLLVM_TARGETS_TO_BUILD="host" \
+      -DLLVM_ENABLE_ASSERTIONS=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DPOLYGEIST_ENABLE_POLYMER=1 \
+      -DPOLYGEIST_POLYMER_ENABLE_PLUTO=1 \
+      -DLLVM_EXTERNAL_LIT=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/bin/llvm-lit \
+      -DPOLYGEIST_USE_LINKER=lld \
+    && ninja -j 4
+
+# ----------- ROSE ---------------
+# boost installation
+
+ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
+ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
+
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libboost-all-dev
+ 
+WORKDIR ${POLYHEDRAL_DIR}
+ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
+
+RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
+
+WORKDIR ${POLYHEDRAL_DIR}/boost
+
+RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
+RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
+RUN ./b2 install
+
+# rose installation
+WORKDIR ${POLYHEDRAL_DIR}
+ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
+
+RUN git clone ${ROSE_REPO_URL}
+WORKDIR ${POLYHEDRAL_DIR}/rose
+RUN git checkout v0.11.100.0
+RUN sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C
+
+RUN ./build
+RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-install
+RUN mkdir ${POLYHEDRAL_DIR}/rose/rose-build
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/lib/"
+
+
+WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
+RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/
+RUN make -j4
+RUN make install
+
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
+ENV PATH="${PATH}:${POLYHEDRAL_DIR}/rose/rose-install/bin/"
+
+ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install/"
+ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
+
+WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
+RUN ./install.sh
+RUN make install
+
+# ----------- POLYBENCH ---------------
+# Polybench
+WORKDIR ${POLYHEDRAL_DIR}
+ARG PS_REPO_URL="https://sourceforge.net/projects/polybench/files/polybench-c-4.2.tar.gz"
+ 
+RUN wget -qO- ${PS_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/polybench --strip-components 1
+
+# ----------- FINAL POLISHING ---------------
+# Add scripts and patch
+WORKDIR ${POLYHEDRAL_DIR}
+ADD l_BaseKit_p_2021.4.0.3422.sh ${POLYHEDRAL_DIR}
+ADD l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
+
+WORKDIR ${POLYHEDRAL_DIR}
+RUN export DEBIAN_FRONTEND="noninteractive" \
+ && apt update && apt install -y libnotify-dev
+
+RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept
+RUN bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
+
+WORKDIR ${POLYHEDRAL_DIR}
+ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}
+ADD polybench.c ${POLYHEDRAL_DIR}/polybench/utilities
+RUN mkdir ${POLYHEDRAL_DIR}/polybench/output_data
+RUN cp ${POLYHEDRAL_DIR}/execute_polyhedral.sh ${POLYHEDRAL_DIR}/execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench
+
+RUN mkdir /results
+
+WORKDIR ${POLYHEDRAL_DIR}
+
