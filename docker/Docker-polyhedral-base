@@ -75,6 +75,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
         autoconf automake autotools-dev libgmp-dev libtool flex bison pkg-config libgmp-dev libyaml-dev \
         gcc perl doxygen texinfo texlive-latex-extra rsync \
         lld \
+        libboost-all-dev ghostscript iputils-ping \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

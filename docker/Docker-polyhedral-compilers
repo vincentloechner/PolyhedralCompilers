@@ -168,21 +168,21 @@ RUN mkdir -p Polygeist/build && cd Polygeist/build \
 # ----------- ROSE ---------------
 # boost installation
 
-ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
-ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
+# ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
+# ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
 
 RUN export DEBIAN_FRONTEND="noninteractive" \
  && apt update && apt install -y libboost-all-dev
  
-WORKDIR ${POLYHEDRAL_DIR}
-ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
-RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
+# WORKDIR ${POLYHEDRAL_DIR}
+# ARG BOOST_REPO_URL="https://archives.boost.io/release/1.82.0/source/boost_1_82_0.tar.gz"
+# RUN wget -qO- ${BOOST_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/boost --strip-components 1
 
-WORKDIR ${POLYHEDRAL_DIR}/boost
-RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
-RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
-RUN ./b2 install
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/lib/"
+# WORKDIR ${POLYHEDRAL_DIR}/boost
+# RUN mkdir ${POLYHEDRAL_DIR}/boost/boost-install
+# RUN ./bootstrap.sh --prefix=${POLYHEDRAL_DIR}/boost/boost-install
+# RUN ./b2 install
+# ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/boost/boost-install/lib/"
 
 # rose build
 WORKDIR ${POLYHEDRAL_DIR}
@@ -190,14 +190,15 @@ ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
 RUN git clone ${ROSE_REPO_URL}
 
 WORKDIR ${POLYHEDRAL_DIR}/rose
-RUN git checkout v0.11.100.0 \
-    && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
+RUN git checkout v0.11.145.225 \
+    # && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
     && ./build \
     && mkdir ${POLYHEDRAL_DIR}/rose/rose-install \
     && mkdir ${POLYHEDRAL_DIR}/rose/rose-build
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
-RUN ../configure --enable-languages=c,c++ --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/ \
+# --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/
+RUN ../configure --enable-languages=c,c++ --with-boost=/usr --with-boost-libdir=/usr/lib/x86_64-linux-gnu/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/ \
     && make -j4 \
     && make install
 
@@ -205,7 +206,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/
 ENV PATH="${PATH}:${POLYHEDRAL_DIR}/rose/rose-install/bin/"
 
 ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install/"
-ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
+# ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
 RUN ./install.sh \
@@ -228,7 +229,7 @@ ADD l_BaseKit_p_2021.4.0.3422.sh l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
 RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept \
     && bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
 
-ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench
+ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench/
 ADD polybench.c ${POLYHEDRAL_DIR}/polybench/utilities
 RUN mkdir /results && ln -s /results ${POLYHEDRAL_DIR}/polybench/output_data
 
