@@ -201,9 +201,9 @@ ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
 RUN git clone ${ROSE_REPO_URL}
 
 WORKDIR ${POLYHEDRAL_DIR}/rose
-# last version of rose supporting polyopt
-RUN git checkout v0.11.90.0 \
-    # && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
+# this is the last version of rose supporting PolyOpt (recent ones deleted it)
+RUN git checkout v0.11.100.0 \
+    && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
     && ./build \
     && mkdir ${POLYHEDRAL_DIR}/rose/rose-install \
     && mkdir ${POLYHEDRAL_DIR}/rose/rose-build
@@ -214,21 +214,28 @@ RUN ../configure --enable-languages=c,c++ --with-boost=/usr --with-boost-libdir=
     && make -j2 \
     && make install
 
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
-ENV PATH="${PATH}:${POLYHEDRAL_DIR}/rose/rose-install/bin/"
+ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install"
+ENV BOOST_ROOT="/usr"
 
-ENV ROSE_ROOT="${POLYHEDRAL_DIR}/rose/rose-install/"
+# don't need/changed:
+# ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROSE_ROOT}/lib"
+# ENV PATH="${PATH}:${ROSE_ROOT}/bin"
 # ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
 RUN ./install.sh \
     && make install
 
+# ----------- ICC and libs ---------------
+# Intel compiler (only on x86_64 arch)
+ADD l_BaseKit_p_2021.4.0.3422.sh l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
+RUN [ $(uname -m) = "x86_64" ] \
+    && bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept \
+    && bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
+
 # ----------- POLYBENCH ---------------
-# Polybench
 WORKDIR ${POLYHEDRAL_DIR}
 ARG PS_REPO_URL="https://sourceforge.net/projects/polybench/files/polybench-c-4.2.tar.gz"
- 
 RUN wget -qO- ${PS_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/polybench --strip-components 1
 
 # ----------- FINAL POLISHING ---------------
@@ -236,10 +243,6 @@ RUN wget -qO- ${PS_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/polybenc
 WORKDIR ${POLYHEDRAL_DIR}
 RUN export DEBIAN_FRONTEND="noninteractive" \
     && apt update && apt install -y libnotify-dev
-
-ADD l_BaseKit_p_2021.4.0.3422.sh l_HPCKit_p_2021.4.0.3347.sh ${POLYHEDRAL_DIR}
-RUN bash l_BaseKit_p_2021.4.0.3422.sh -a --silent --eula accept \
-    && bash l_HPCKit_p_2021.4.0.3347.sh -a --silent --eula accept
 
 ADD execute_polyhedral.sh execute_polyhedral_syn.sh ${POLYHEDRAL_DIR}/polybench/
 ADD polybench.c ${POLYHEDRAL_DIR}/polybench/utilities
