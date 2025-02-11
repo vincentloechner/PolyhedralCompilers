@@ -1,8 +1,13 @@
+# Polyhedral docker, base Ubuntu 20.04, all necessary packages
+
+# build polyhedral base with:
+#   docker build -f Docker-polyhedral-base . -t polyhedral-base
+# then build polyhedral-compilers on top of this one.
 FROM ubuntu:20.04
 
-ARG name="polyhedral-survey"
-ARG maintainer="thangamani@unistra.fr"
-ARG description="C/C++, and Python dependencies of POLYHEDRAL"
+ARG name="polyhedral-base"
+ARG maintainer="loechner@unistra.fr"
+ARG description="linux, compilers, libs, utils and Python dependencies of Polyhedral"
 
 LABEL name=${name} \
       maintainer=${maintainer} \
@@ -11,10 +16,7 @@ LABEL name=${name} \
 ENV POLYHEDRAL_DIR="/usr/local/lib/polyhedral"
 ENV LD_LIBRARY_PATH=""
 
-# installs for Polygeist
 ARG DEBIAN_FRONTEND=noninteractive
-ARG GID
-ARG UID
 
 # Essential packages
 RUN apt-get update && apt-get install apt-utils && apt-get -y install --assume-yes \
@@ -102,13 +104,15 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
         dataclasses \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# cmake-3.23.2-linux-aarch64.tar.gz
+# Download and install updated CMake, because many packages need a recent
+# version (not available in ubuntu20).
+# depending on your arch, will download and install:
 # cmake-3.23.2-linux-x86_64.tar.gz
-# Download and install updated CMake, because many packages need a recent version not available in ubuntu20
-WORKDIR ${POLYHEDRAL_DIR}
-RUN PROC_ARCH=$(uname -m) \
-    && CMAKE_FILE="https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2-linux-${PROC_ARCH}.tar.gz" \
-    && wget -qO- ${CMAKE_FILE} | tar xz --one-top-level=${POLYHEDRAL_DIR}/cmake --strip-components 1
-ENV PATH="${POLYHEDRAL_DIR}/cmake/bin:${PATH}"
-
+# cmake-3.23.2-linux-aarch64.tar.gz
+# cmake-3.23.2-linux-[...].tar.gz
+WORKDIR /usr/local
+RUN PROCESSOR_ARCH=$(uname -m) \
+    && CMAKE_FILE="https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2-linux-${PROCESSOR_ARCH}.tar.gz" \
+    && wget -qO- ${CMAKE_FILE} | tar xz --one-top-level=/usr/local/cmake --strip-components 1
+ENV PATH="/usr/local/cmake/bin:${PATH}"
 

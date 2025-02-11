@@ -1,9 +1,18 @@
-# after building polyhedral base, install all polyhedral compilers on top of it
-# allocate enough memory in your docker!
-# -> on MacOS, click on the Docker Desktop bottom line 'RAM' to set the memory limit to 16GB at least
+# Polyhedral docker, from polyhedral-base: build all polyhedral compilers
+
+# - build base first with:
+#       docker build -f Docker-polyhedral-base . -t polyhedral-base
+# - then run:
+#       docker build -f Docker-polyhedral-compilers . -t polyhedral
+# 
+# !WARNING!
+# Allocate at least 16GB memory for your docker build!
+# Those compilers are HUGE!
+# [-> on MacOS, click on the Docker Desktop bottom line on 'RAM' to set the
+#     memory limit to 16GB at least]
 FROM polyhedral-base
 
-ARG name="polyhedral-survey"
+ARG name="polyhedral-compilers"
 ARG maintainer="loechner@unistra.fr"
 ARG description="polyhedral compilers and polybench"
 
@@ -28,9 +37,11 @@ WORKDIR ${POLYHEDRAL_DIR}/llvm-project
 # was: ARG LLVM_TAG="llvmorg-15.0.2"
 ARG LLVM_TAG="llvmorg-19.1.7"
 RUN git checkout ${LLVM_TAG} \
+    && mkdir install \
     && mkdir -p build && cd build \
-    && cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly" -DLLVM_TARGETS_TO_BUILD="host" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=True -DLLVM_CCACHE_BUILD=True -DLLVM_USE_LINKER=lld \
-    && ninja -j 4 all
+    && cmake -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="clang;openmp;polly" -DLLVM_TARGETS_TO_BUILD="host" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=True -DLLVM_CCACHE_BUILD=True -DLLVM_USE_LINKER=lld -DCMAKE_INSTALL_PREFIX=${POLYHEDRAL_DIR}/llvm-project/install \
+    && ninja -j 4 all \
+    && ninja install
 
 # # update path to find llvm-lit and FileCheck
 ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
@@ -190,7 +201,8 @@ ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
 RUN git clone ${ROSE_REPO_URL}
 
 WORKDIR ${POLYHEDRAL_DIR}/rose
-RUN git checkout v0.11.145.225 \
+# last version of rose supporting polyopt
+RUN git checkout v0.11.90.0 \
     # && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
     && ./build \
     && mkdir ${POLYHEDRAL_DIR}/rose/rose-install \
@@ -199,7 +211,7 @@ RUN git checkout v0.11.145.225 \
 WORKDIR ${POLYHEDRAL_DIR}/rose/rose-build
 # --with-boost=${POLYHEDRAL_DIR}/boost/boost-install/
 RUN ../configure --enable-languages=c,c++ --with-boost=/usr --with-boost-libdir=/usr/lib/x86_64-linux-gnu/ --prefix=${POLYHEDRAL_DIR}/rose/rose-install/ \
-    && make -j4 \
+    && make -j2 \
     && make install
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${POLYHEDRAL_DIR}/rose/rose-install/lib/"
