@@ -121,36 +121,36 @@ RUN git checkout releases/gcc-14.2.0 \
 # # RUN make install
 
 # ----------- POLYGEIST ---------------
-# Polygeist Installation
+# build and install polygeist/llvm/polymer to ${POLYHEDRAL_DIR}/Polygeist/install
 WORKDIR ${POLYHEDRAL_DIR}
-# TODO: was mlir-clang/
 ARG POLYGEIST_REPO="https://github.com/llvm/Polygeist"
 RUN git clone --recursive ${POLYGEIST_REPO}
-RUN cd Polygeist \
-    && git checkout 77c04bb2a7a2406ca9480bcc9e729b07d2c8d077
+
+WORKDIR ${POLYHEDRAL_DIR}/Polygeist
+RUN git checkout 77c04bb2a7a2406ca9480bcc9e729b07d2c8d077 \
+    && mkdir build
 
 ### Two steps compilation:
 # 1. LLVM
-RUN cd Polygeist \
-    && mkdir llvm-project/build \
-    && cd llvm-project/build \
+RUN cd llvm-project \
+    && mkdir -p build && cd build \
     && cmake -G Ninja ../llvm \
-      -DLLVM_ENABLE_PROJECTS="mlir;clang;polly;openmp" \
-      -DLLVM_TARGETS_TO_BUILD="host" \
-      -DLLVM_ENABLE_ASSERTIONS=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DLLVM_USE_LINKER=lld \
-    && ninja -j 4
+        -DLLVM_ENABLE_PROJECTS="mlir;clang;polly;openmp" \
+        -DLLVM_TARGETS_TO_BUILD="host" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DLLVM_USE_LINKER=lld \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=${POLYHEDRAL_DIR}/Polygeist/install \
+    && ninja -j 4 \
+    && ninja install
 
 # 2. Polygeist with Polymer & Pluto
+WORKDIR ${POLYHEDRAL_DIR}/Polygeist/build
 # for polymer not to download and rebuild *another* version of LLVM
 # make fake empty llvm:
-RUN mkdir -p Polygeist/build && cd Polygeist/build \
-    && mkdir -p llvm/llvm-project \
-    && mkdir -p llvm/build \
-    && mkdir -p llvm/install \
+RUN mkdir -p llvm/install \
     && touch llvm/install/.DONE
-# build polymer embedded pluto with (system) clang-9:
+# pre-build (polymer embedded) pluto with clang-9:
 ARG PLUTO_DIR="${POLYHEDRAL_DIR}/Polygeist/build/pluto"
 RUN mkdir -p ${PLUTO_DIR} && cd ${PLUTO_DIR} \
     && git clone https://github.com/kumasento/pluto \
@@ -162,19 +162,20 @@ RUN mkdir -p ${PLUTO_DIR} && cd ${PLUTO_DIR} \
     && make -j 8 install \
     && touch ${PLUTO_DIR}/.DONE
 
-# build polygeist, with embedded polymer (& pluto)
-RUN mkdir -p Polygeist/build && cd Polygeist/build \
-    && cmake -G Ninja .. \
-      -DMLIR_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/mlir \
-      -DCLANG_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/clang \
-      -DLLVM_TARGETS_TO_BUILD="host" \
-      -DLLVM_ENABLE_ASSERTIONS=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DPOLYGEIST_ENABLE_POLYMER=1 \
-      -DPOLYGEIST_POLYMER_ENABLE_PLUTO=1 \
-      -DLLVM_EXTERNAL_LIT=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/bin/llvm-lit \
-      -DPOLYGEIST_USE_LINKER=lld \
-    && ninja -j 4
+# build polygeist, with embedded polymer and pluto
+RUN cmake -G Ninja .. \
+        -DMLIR_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/mlir \
+        -DCLANG_DIR=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/lib/cmake/clang \
+        -DLLVM_EXTERNAL_LIT=${POLYHEDRAL_DIR}/Polygeist/llvm-project/build/bin/llvm-lit \
+        -DLLVM_TARGETS_TO_BUILD="host" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DPOLYGEIST_ENABLE_POLYMER=1 \
+        -DPOLYGEIST_POLYMER_ENABLE_PLUTO=1 \
+        -DPOLYGEIST_USE_LINKER=lld \
+        -DCMAKE_INSTALL_PREFIX=${POLYHEDRAL_DIR}/Polygeist/install \
+    && ninja -j 4 \
+    && ninja install
 
 # ----------- ROSE ---------------
 # boost installation
