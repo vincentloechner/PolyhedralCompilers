@@ -36,11 +36,11 @@ RUN apt-get update && apt-get install apt-utils && apt-get -y install --assume-y
     texlive-full \
     vim
 
-# Change default compilers to make Pluto happy (not necessary??)
-# RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-9 100 \
-#     && update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-9 100 \
-#     && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100 \
-#     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
+# Change default clang compiler to make Pluto (from polymer) happy
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-9 100 \
+    && update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-9 100 \
+    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
 
 # Install packages for polyhedral
 RUN export DEBIAN_FRONTEND="noninteractive" \
