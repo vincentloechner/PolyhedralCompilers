@@ -177,8 +177,9 @@ RUN mkdir -p Polygeist/build && cd Polygeist/build \
     && ninja -j 4
 
 # ----------- ROSE ---------------
-# boost installation
+# boost installation: can use default package
 
+# do we need a recent version of gcc?
 # ENV LD_LIBRARY_PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/lib/:${LD_LIBRARY_PATH}"
 # ENV PATH="${POLYHEDRAL_DIR}/gcc/gcc-install/bin/:${PATH}"
 
@@ -201,7 +202,7 @@ ARG ROSE_REPO_URL="https://github.com/rose-compiler/rose.git"
 RUN git clone ${ROSE_REPO_URL}
 
 WORKDIR ${POLYHEDRAL_DIR}/rose
-# this is the last version of rose supporting PolyOpt (recent ones deleted it)
+# this is a version of rose supporting PolyOpt (recent ones deleted it)
 RUN git checkout v0.11.100.0 \
     && sed -i '1 i\#include <map>'  ./tests/smoke/unit/Sawyer/hashMapUnitTests.C \
     && ./build \
@@ -220,11 +221,17 @@ ENV BOOST_ROOT="/usr"
 # don't need/changed:
 # ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROSE_ROOT}/lib"
 # ENV PATH="${PATH}:${ROSE_ROOT}/bin"
-# ENV BOOST_ROOT="${POLYHEDRAL_DIR}/boost/boost-install/"
 
 WORKDIR ${POLYHEDRAL_DIR}/rose/projects/PolyOpt2
 RUN ./install.sh \
     && make install
+
+    # try another compiler?
+# RUN apt-get install clang \
+#     && CC=clang CXX=clang++ ./install.sh \
+#     && make install
+# RUN CC=clang-9 CXX=clang++-9 ./install.sh \
+#     && make install
 
 # ----------- ICC and libs ---------------
 # Intel compiler (only on x86_64 arch)
