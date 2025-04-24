@@ -20,11 +20,16 @@ flag="-1"
 polygeist="true"
 debug="false"
 
+gcc_bin="/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc"
+clang_bin="/usr/local/lib/polyhedral/clang-llvm/bin/clang"
+icc_bin="/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc"
+
 #reading the command line arguments
 while echo $1 | grep -q ^-; do
     # Evaluating a user entered string!
     # Red flags!!!  Don't do this
     eval $( echo $1 | sed 's/^-//' )=$2
+	echo "$( echo $1 | sed 's/^-//' )=$2"
     shift
     shift
 done
@@ -66,7 +71,7 @@ function run()
 			echo "gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm"
 		fi
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "gcc:"
 		for exe in 1
 		do
@@ -82,7 +87,7 @@ function run()
 			echo "clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm"
 		fi
 	
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Clang:"
 		for exe in 1
 		do
@@ -98,7 +103,7 @@ function run()
 			echo "icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm"
 		fi
 	
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "icc:"
 		for exe in 1
 		do
@@ -130,7 +135,7 @@ function run()
 			echo "clang -O3  -ffast-math -march=native -mprefer-vector-width=256 -mllvm -polly -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm"
 		fi
 	
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -ffast-math -march=native -mprefer-vector-width=256 -mllvm -polly -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -ffast-math -march=native -mprefer-vector-width=256 -mllvm -polly -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "polly:"
 		for exe in 1
 		do
@@ -146,7 +151,7 @@ function run()
 			echo "gcc -fgraphite -O3 -ffast-math -march=native  -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm"
 		fi
 	
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -fgraphite -O3 -ffast-math -march=native  -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -fgraphite -O3 -ffast-math -march=native  -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "graphite:"
 		for exe in 1
 		do
@@ -180,7 +185,7 @@ function run()
 	
 		timeout 30m /usr/local/lib/polyhedral/pluto/polycc --tile  --smartfuse --prevector "$BENCH_PATH"/"$bench"/"$bench".c > garbage.txt
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(--tile) gcc:"
 		for exe in 1
 		do
@@ -188,7 +193,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(--tile) clang:"
 		for exe in 1
 		do
@@ -196,7 +201,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(--tile) icc:"
 		for exe in 1
 		do
@@ -217,7 +222,7 @@ function run()
 	
 		timeout 30m  /usr/local/lib/polyhedral/pluto/polycc --l2tile  --smartfuse --prevector "$BENCH_PATH"/"$bench"/"$bench".c > garbage.txt
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(2l-tile) gcc:"
 		for exe in 1
 		do
@@ -225,7 +230,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(2l-tile) clang:"
 		for exe in 1
 		do
@@ -233,7 +238,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(2l-tile) icc:"
 		for exe in 1
 		do
@@ -254,7 +259,7 @@ function run()
 	
 		timeout 30m /usr/local/lib/polyhedral/pluto/polycc --diamond-tile  --smartfuse --prevector "$BENCH_PATH"/"$bench"/"$bench".c > garbage.txt
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(diamond-tile) gcc:"
 		for exe in 1
 		do
@@ -262,7 +267,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(diamond-tile) clang:"
 		for exe in 1
 		do
@@ -270,7 +275,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c ./"$bench".pluto.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "Pluto(diamond-tile) icc:"
 		for exe in 1
 		do
@@ -291,7 +296,7 @@ function run()
 	
 		/usr/local/lib/polyhedral/pocc/bin/pocc --pluto-tile --vectorizer --pluto-scalpriv --pluto-fuse smartfuse "$BENCH_PATH"/"$bench"/"$bench".c > garbage.txt
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "PoCC gcc:"
 		for exe in 1
 		do
@@ -299,7 +304,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "PoCC clang:"
 		for exe in 1
 		do
@@ -307,7 +312,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$BENCH_PATH"/"$bench"/"$bench".pocc.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "PoCC icc:"
 		for exe in 1
 		do
@@ -325,7 +330,7 @@ function run()
 	
 		/usr/local/lib/polyhedral/ppcg/ppcg --tile --target=c "$BENCH_PATH"/"$bench"/"$bench".c -I ./utilities/
 		
-		/usr/local/lib/polyhedral/gcc/gcc-install/bin/gcc -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${gcc_bin} -O3  -ffast-math -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "ppcg gcc:"
 		for exe in 1
 		do
@@ -333,7 +338,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/usr/local/lib/polyhedral/clang-llvm/bin/clang -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${clang_bin} -O3  -march=native -ffast-math -mprefer-vector-width=256 -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "ppcg clang:"
 		for exe in 1
 		do
@@ -341,7 +346,7 @@ function run()
 		done
 		rm ./"$bench"_time
 
-		/opt/intel/oneapi/compiler/2021.4.0/linux/bin/intel64/icc  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
+		${icc_bin}  -O3 -fp-model=fast -march=native -I utilities -I "$BENCH_PATH"/"$bench" utilities/polybench.c "$bench".ppcg.c -DPOLYBENCH_TIME -DEXTRALARGE_DATASET -DPOLYBENCH_DUMP_ARRAYS  -DPOLYBENCH_USE_RESTRICT -DPOLYBENCH_USE_SCALAR_LB -DPOLYBENCH_USE_C99_PROTO -o "$bench"_time -lm
 		echo "ppcg icc:"
 		for exe in 1
 		do
