@@ -21,13 +21,13 @@ RUN echo "User ID: $UID"
 # Essential packages
 RUN apt-get update && apt-get install apt-utils && apt-get -y install tzdata --assume-yes
 
-RUN apt-get install build-essential libtool autoconf pkg-config flex bison libgmp-dev clang-9 libclang-9-dev texinfo cmake vim ninja-build git texlive-full --assume-yes
+RUN apt-get install build-essential libtool autoconf pkg-config flex bison libgmp-dev clang-12 libclang-12-dev texinfo cmake vim ninja-build git texlive-full --assume-yes
 
-# Change default compilers to make Pluto happy.
-RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-9 100
-RUN update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-9 100
-RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100
-RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
+# Change default compilers to make Pluto happy (with llvm-12).
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-12 101
+RUN update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-12 101
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-12 101
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-12 101
 
 # Install packages for polyhedral
 RUN export DEBIAN_FRONTEND="noninteractive" \
@@ -115,7 +115,7 @@ WORKDIR ${POLYHEDRAL_DIR}
 RUN wget -qO- ${CMAKE_FILE} | tar xz --one-top-level=${POLYHEDRAL_DIR}/cmake --strip-components 1
 ENV PATH="${POLYHEDRAL_DIR}/cmake/bin:${PATH}"
 
-# ----------- LLVM Build ---------------
+# ----------- LLVM Build (version 15)---------------
 # Download LLVM
 RUN git clone ${LLVM_REPO_URL}
 
@@ -141,7 +141,8 @@ RUN export DEBIAN_FRONTEND="noninteractive" \
    && apt update && apt install -y autoconf automake autotools-dev libgmp-dev libtool flex bison pkg-config libgmp-dev libyaml-dev
 
 WORKDIR ${POLYHEDRAL_DIR}
-ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+# ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+ARG PLUTO_REPO_URL="https://github.com/bondhugula/pluto/releases/download/0.13.0/pluto-0.13.0.tgz"
 
 RUN wget -qO- ${PLUTO_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pluto --strip-components 1
 

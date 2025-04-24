@@ -48,7 +48,8 @@ ENV PATH="${PATH}:${POLYHEDRAL_DIR}/llvm-project/build/bin"
 
 # ----------- PLUTO ---------------
 WORKDIR ${POLYHEDRAL_DIR}
-ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+# ARG PLUTO_REPO_URL="https://sourceforge.net/projects/pluto-compiler/files/pluto-0.11.4.tar.gz"
+ARG PLUTO_REPO_URL="https://github.com/bondhugula/pluto/releases/download/0.13.0/pluto-0.13.0.tgz"
 RUN wget -qO- ${PLUTO_REPO_URL} | tar xz --one-top-level=${POLYHEDRAL_DIR}/pluto --strip-components 1
 
 WORKDIR ${POLYHEDRAL_DIR}/pluto
